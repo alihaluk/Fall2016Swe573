@@ -32,7 +32,7 @@ class List(Handler):
 
         if response.ok:
             jData = json.loads(response.content)
-            return jData
+            return json.dumps(jData, indent=4)
         else:
             return {
                 "error": response.status
@@ -55,7 +55,7 @@ class FoodReport(Handler):
 
         if response.ok:
             jData = json.loads(response.content)
-            return jData
+            return json.dumps(jData, indent=4)
         else:
             return {
                 "error" : response.status
@@ -111,7 +111,7 @@ class NutrientReport(Handler):
 
         if response.ok:
             jData = json.loads(response.content)
-            return jData
+            return json.dumps(jData, indent=4)
         else:
             return {
                 "error" : response.status

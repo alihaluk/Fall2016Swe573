@@ -1,7 +1,8 @@
-# from api.py
+# from hello.py
 from pycnic.core import WSGI, Handler
 import json
 import requests
+import urllib
 
 api_key = "DEMO_KEY"
 
@@ -32,11 +33,35 @@ class List(Handler):
 
         if response.ok:
             jData = json.loads(response.content)
-            return json.dumps(jData, indent=4)
+            return json.dumps(jData, indent=4, sort_keys=True)
         else:
             return {
                 "error": response.status
             }
+
+class Search(Handler):
+    def get(self, q="", sort="n"):
+
+        if (self.request.args.get("q")):
+            q = self.request.args.get("q")
+        else:
+            return { "error" : "query_string can not be null" }
+
+        if (self.request.args.get("sort")):
+            type = self.request.args.get("sort")
+
+        url = "http://api.nal.usda.gov/ndb/search/?format=json" + "&q=" + urllib.quote(q.encode('utf8')) + "&sort=" + sort + "&api_key=" + api_key
+
+        response = requests.get(url)
+
+        if response.ok:
+            jData = json.loads(response.content)
+            return json.dumps(jData, indent=4, sort_keys=True)
+        else:
+            return {
+                "error": response.status
+            }
+
 
 class FoodReport(Handler):
     def get(self, ndbno="", type="b"):
@@ -55,7 +80,7 @@ class FoodReport(Handler):
 
         if response.ok:
             jData = json.loads(response.content)
-            return json.dumps(jData, indent=4)
+            return json.dumps(jData, indent=4, sort_keys=True)
         else:
             return {
                 "error" : response.status
@@ -111,7 +136,7 @@ class NutrientReport(Handler):
 
         if response.ok:
             jData = json.loads(response.content)
-            return json.dumps(jData, indent=4)
+            return json.dumps(jData, indent=4, sort_keys=True)
         else:
             return {
                 "error" : response.status
@@ -122,5 +147,6 @@ class app(WSGI):
         ("/", Hello()),
         ("/list", List()),
         ("/foodreport", FoodReport()),
-        ("/nutrientreport", NutrientReport())
+        ("/nutrientreport", NutrientReport()),
+        ("/search", Search())
     ]

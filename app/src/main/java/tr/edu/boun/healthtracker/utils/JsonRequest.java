@@ -1,6 +1,5 @@
 package tr.edu.boun.healthtracker.utils;
 
-import android.content.Context;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -22,7 +21,6 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
-import tr.edu.boun.healthtracker.model.ErrorModel;
 import tr.edu.boun.healthtracker.model.FoodReportModel;
 import tr.edu.boun.healthtracker.model.ListJsonModel;
 import tr.edu.boun.healthtracker.model.SearchModel;

@@ -21,11 +21,6 @@ import tr.edu.boun.healthtracker.db.DB;
 
 public class LoginActivity extends AppCompatActivity
 {
-
-    private static final String[] DUMMY_CREDENTIALS = new String[]{"haluks:haluk", "suzan:suzi"};
-    /**
-     * Keep track of the login task to ensure we can cancel it if requested.
-     */
     private UserLoginTask mAuthTask = null;
 
     // UI references.

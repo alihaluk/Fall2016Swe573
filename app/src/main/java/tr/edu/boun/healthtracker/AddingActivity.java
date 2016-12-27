@@ -15,10 +15,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
+import tr.edu.boun.healthtracker.db.DB;
+import tr.edu.boun.healthtracker.model.inner.ExerciseObject;
 import tr.edu.boun.healthtracker.model.inner.SearchItemObject;
+import tr.edu.boun.healthtracker.model.inner.UserObject;
 import tr.edu.boun.healthtracker.utils.JsonRequest;
 
 public class AddingActivity extends AppCompatActivity
@@ -43,6 +49,10 @@ public class AddingActivity extends AppCompatActivity
     private RecyclerView.LayoutManager mLayoutManager;
 
     private SearchView mSearchView;
+
+    private String addingType;
+
+    private List<CustomItem> allExercises;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -73,20 +83,26 @@ public class AddingActivity extends AppCompatActivity
                 return false;
             }
         });
-//        mSearchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener()
-//        {
-//            @Override
-//            public void onFocusChange(View view, boolean queryTextFocused)
-//            {
-//                if(!queryTextFocused)
-//                {
-//                    mSearchView.setPressed(true);
-//                    mSearchView.setQuery("", false);
-//                }
-//            }
-//        });
+        mSearchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener()
+        {
+            @Override
+            public void onFocusChange(View view, boolean queryTextFocused)
+            {
+                if(!queryTextFocused)
+                {
+                    mSearchView.setPressed(true);
+                    mSearchView.setQuery("", false);
 
-        BuildScreen(getIntent().getStringExtra("type"));
+                    if (addingType.equals("Exercise"))
+                    {
+                        populateAllExercises();
+                    }
+                }
+            }
+        });
+
+        addingType = getIntent().getStringExtra("type");
+        BuildScreen(addingType);
     }
 
     public void triggerSearch()
@@ -102,12 +118,38 @@ public class AddingActivity extends AppCompatActivity
 
         if (type.equals("Food"))
         {
-            // get recent foods and populate list
+            //TODO: get recent foods and populate list
+
+            List<CustomItem> items = new ArrayList<>();
+            populateList(items);
+
         } else if (type.equals("Exercise"))
         {
-            // get recent exercise and populate list
+            // TODO: get recent exercise and populate list
+
+            // now we will populate all exercise items to search.
+            populateAllExercises();
         }
 
+    }
+
+    public void populateAllExercises()
+    {
+        List<CustomItem> items = new ArrayList<>();
+
+        DB db = new DB(AddingActivity.this);
+        db.openDB();
+        UserObject user = db.getActiveUser();
+        List<ExerciseObject> all_exercises = db.getCalculatedExerciseListWithMass(user.getWeight());
+        db.closeDB();
+
+        for (ExerciseObject eo : all_exercises)
+        {
+            items.add(new CustomItem(eo.getName(), "", String.format(Locale.US, "%d", eo.getCalorie().intValue())));
+        }
+        populateList(items);
+
+        allExercises = items;
     }
 
     public class SearchItemTask extends AsyncTask<String, Void, Void>
@@ -117,11 +159,26 @@ public class AddingActivity extends AppCompatActivity
         @Override
         protected Void doInBackground(String... params)
         {
-            JsonRequest jr = new JsonRequest();
-            List<SearchItemObject> result_items = jr.sendRequestSearch(params[0], "n");
+            if (addingType.equals("Food"))
+            {
+                JsonRequest jr = new JsonRequest();
+                List<SearchItemObject> result_items = jr.sendRequestSearch(params[0], "n");
 
-            for (SearchItemObject so : result_items) {
-                items.add(new CustomItem(so.getName(), so.getNdbno(), ""));
+                for(SearchItemObject so : result_items)
+                {
+                    items.add(new CustomItem(so.getName(), so.getNdbno(), ""));
+                }
+            }
+            else if (addingType.equals("Exercise"))
+            {
+                for (CustomItem ci : allExercises)
+                {
+                    if (ci.getHeader().toLowerCase().contains(params[0].toLowerCase()))
+                    {
+                        items.add(new CustomItem(ci.getHeader(), "", ci.getValue()));
+                    }
+                }
+
             }
 
             return null;
@@ -184,12 +241,25 @@ public class AddingActivity extends AppCompatActivity
                 @Override
                 public void onClick(View v)
                 {
-                    String ndbno = values.get(position).getSubtext();
 
-                    // intent to add food page
-                    Intent i = new Intent(AddingActivity.this, AddFoodActivity.class);
-                    i.putExtra("ndbno", ndbno);
-                    startActivityForResult(i, 201);
+                    if (addingType.equals("Food"))
+                    {
+                        String ndbno = values.get(position).getSubtext();
+
+                        Intent i = new Intent(AddingActivity.this, AddFoodActivity.class);
+                        i.putExtra("ndbno", ndbno);
+                        startActivityForResult(i, 201);
+                    }
+                    else if (addingType.equals("Exercise"))
+                    {
+                        String exerciseName = values.get(position).getHeader();
+                        String SixtyMinsCalorie = values.get(position).getValue();
+
+                        Intent i = new Intent(AddingActivity.this, AddExerciseActivity.class);
+                        i.putExtra("name", exerciseName);
+                        i.putExtra("calorie", SixtyMinsCalorie);
+                        startActivityForResult(i, 202);
+                    }
                 }
             });
         }
@@ -211,6 +281,22 @@ public class AddingActivity extends AppCompatActivity
                 if (resultCode == RESULT_OK)
                 {
                     // add food
+                    String header = data.getStringExtra("itemHeader");
+                    String detail = data.getStringExtra("itemDetail");
+                    String value = data.getStringExtra("itemValue");
+
+                    Intent returnIntent = new Intent();
+                    returnIntent.putExtra("itemHeader", header);
+                    returnIntent.putExtra("itemDetail", detail);
+                    returnIntent.putExtra("itemValue", value);
+                    setResult(RESULT_OK, returnIntent);
+                    finish();
+                }
+                break;
+            case 202:
+                if (resultCode == RESULT_OK)
+                {
+                    // add exercise
                     String header = data.getStringExtra("itemHeader");
                     String detail = data.getStringExtra("itemDetail");
                     String value = data.getStringExtra("itemValue");

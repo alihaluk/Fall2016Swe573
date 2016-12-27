@@ -2,33 +2,29 @@ package tr.edu.boun.healthtracker;
 
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.view.LayoutInflater;
-import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.view.Menu;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-
-import com.splunk.mint.Mint;
-
-import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
+import tr.edu.boun.healthtracker.db.DB;
+import tr.edu.boun.healthtracker.model.inner.UserObject;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener
 {
@@ -43,7 +39,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     TextView tvTotalExercise;
     TextView tvRemainingCalories;
 
-    Double DefaultDailyGoal = 2700.0;
+    UserObject currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -83,8 +79,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
+        String user_email = getIntent().getStringExtra("user_email");
+
+        DB db = new DB(MainActivity.this);
+        db.openDB();
+        currentUser = db.getActiveUser();
+        db.closeDB();
+
         tvGoal = (TextView) findViewById(R.id.txt_main_goal);
-        tvGoal.setText(String.valueOf(DefaultDailyGoal.intValue()));
+        tvGoal.setText(currentUser.getCalGoal().toString());
         tvTotalFood = (TextView) findViewById(R.id.txt_main_total_food);
         tvTotalExercise = (TextView) findViewById(R.id.txt_main_total_exercise);
         tvRemainingCalories = (TextView) findViewById(R.id.txt_main_total_calorie);
@@ -108,7 +111,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             case 1001:
                 if (resultCode == RESULT_OK)
                 {
-                    // add food
+
                     String header = data.getStringExtra("itemHeader");
                     String detail = data.getStringExtra("itemDetail");
                     String value = data.getStringExtra("itemValue");
@@ -142,7 +145,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         tvTotalFood.setText(String.format(Locale.US, "%d", totalFood.intValue()));
         tvTotalExercise.setText(String.format(Locale.US, "%d", totalExercise.intValue()));
-        Double remaining = DefaultDailyGoal - totalFood + totalExercise;
+        Double remaining = currentUser.getCalGoal() - totalFood + totalExercise;
         tvRemainingCalories.setText(String.format(Locale.US, "%d", remaining.intValue()));
         if (remaining > 0.0)
         {
@@ -277,10 +280,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         // if else
 
-        if (id == R.id.nav_settings)
+        if (id == R.id.nav_profile)
         {
-            Intent i = new Intent(MainActivity.this, SettingsActivity.class);
+            Intent i = new Intent(MainActivity.this, ProfileActivity.class);
             startActivity(i);
+        }
+        if (id == R.id.nav_logout)
+        {
+            Intent i = new Intent(MainActivity.this, LoginActivity.class);
+            startActivity(i);
+            finish();
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);

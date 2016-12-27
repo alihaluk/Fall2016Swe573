@@ -3,17 +3,12 @@ package tr.edu.boun.healthtracker;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.AppCompatSpinner;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -142,7 +137,8 @@ public class AddFoodActivity extends AppCompatActivity
                 {
                     if (mo.getLabel().equals(selectedUnitLabel))
                     {
-                        tvTotalCalorie.setText(String.format(Locale.US, "%.2f", Double.parseDouble(mo.getValue()) * numberOfServing.doubleValue()));
+                        Double totalCalorie = Double.parseDouble(mo.getValue()) * numberOfServing.doubleValue();
+                        tvTotalCalorie.setText(String.format(Locale.US, "%d", totalCalorie.intValue()));
                         break;
                     }
                 }

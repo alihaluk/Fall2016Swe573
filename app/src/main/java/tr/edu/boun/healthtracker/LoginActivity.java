@@ -2,33 +2,22 @@ package tr.edu.boun.healthtracker;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
-import android.annotation.TargetApi;
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
-import android.app.LoaderManager.LoaderCallbacks;
-
-import android.content.CursorLoader;
-import android.content.Loader;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.AsyncTask;
-
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.ContactsContract;
+import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
-import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import java.util.ArrayList;
-import java.util.List;
+import tr.edu.boun.healthtracker.db.DB;
 
 public class LoginActivity extends AppCompatActivity
 {
@@ -78,10 +67,49 @@ public class LoginActivity extends AppCompatActivity
             }
         });
 
+        Button registerButton = (Button) findViewById(R.id.email_register_button);
+        registerButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v)
+            {
+                Intent i = new Intent(LoginActivity.this, RegisterActivity.class);
+                i.putExtra("email", mUsernameView.getText().toString());
+                startActivityForResult(i, 101);
+            }
+        });
+
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data)
+    {
+        switch(requestCode)
+        {
+            case 101:
+                if (resultCode == RESULT_OK)
+                {
+                    Toast.makeText(LoginActivity.this, R.string.success_registered, Toast.LENGTH_SHORT).show();
+                    successfullyLogin(data.getStringExtra("email"));
+                }
+                break;
+        }
+    }
+
+    public void successfullyLogin(String email)
+    {
+        DB db = new DB(LoginActivity.this);
+        db.openDB();
+        db.setActiveUserWithMail(email);
+        db.closeDB();
+
+        Intent i = new Intent(LoginActivity.this, MainActivity.class);
+        i.putExtra("user_email", email);
+        startActivity(i);
+
+        finish();
+    }
 
     /**
      * Attempts to sign in or register the account specified by the login form.
@@ -171,6 +199,8 @@ public class LoginActivity extends AppCompatActivity
         private final String mEmail;
         private final String mPassword;
 
+//        private Boolean shouldRegister = false;
+
         UserLoginTask(String email, String password)
         {
             mEmail = email;
@@ -181,22 +211,23 @@ public class LoginActivity extends AppCompatActivity
         protected Boolean doInBackground(Void... params)
         {
 
-            try
-            {
-                // Simulate network access.
-                Thread.sleep(2000);
-            } catch(InterruptedException e)
-            {
-                return false;
-            }
+            DB db = new DB(LoginActivity.this);
+            db.openDB();
+            Boolean isRegistered = db.doesExistsUser(mEmail);
+            Boolean isValid = db.isUserValid(mEmail, mPassword);
+            db.closeDB();
 
-            for(String credential : DUMMY_CREDENTIALS)
+            if (isRegistered)
             {
-                String[] pieces = credential.split(":");
-                if(pieces[0].equals(mEmail))
+                if (isValid)
                 {
-                    // Account exists, return true if the password matches.
-                    return pieces[1].equals(mPassword);
+                    // sign in
+                    return true;
+                }
+                else
+                {
+                    // return error
+                    return false;
                 }
             }
 
@@ -211,10 +242,7 @@ public class LoginActivity extends AppCompatActivity
 
             if(success)
             {
-                Intent i = new Intent(LoginActivity.this, MainActivity.class);
-                startActivity(i);
-
-                finish();
+                successfullyLogin(mEmail);
             } else
             {
                 mPasswordView.setError(getString(R.string.error_incorrect_password));

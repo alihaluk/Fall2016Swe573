@@ -11,6 +11,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import tr.edu.boun.healthtracker.utils.StreakCalculator;
 import tr.edu.boun.healthtracker.model.inner.ExerciseObject;
 import tr.edu.boun.healthtracker.model.inner.LogObject;
 import tr.edu.boun.healthtracker.model.inner.UserObject;
@@ -250,7 +251,7 @@ public class DB
         return retList;
     }
 
-    public void insertLog(LogObject log) {
+    public long insertLog(LogObject log) {
         ContentValues values = new ContentValues();
         values.put(LOG_USER_ID, log.getUserId());
         values.put(LOG_TYPE, log.getType());
@@ -259,7 +260,11 @@ public class DB
         values.put(LOG_VALUE, log.getValue());
         values.put(LOG_DATE, log.getDate());
 
-        database.insert(TABLE_LOG, null, values);
+        return database.insert(TABLE_LOG, null, values);
+    }
+
+    public void deleteLog(int id) {
+        database.delete(TABLE_LOG, LOG_ID + " = ?", new String[]{String.valueOf(id)});
     }
 
     public List<LogObject> getLogsForDate(long startOfDay, long endOfDay, int userId) {
@@ -299,54 +304,6 @@ public class DB
         }
         c.close();
 
-        if (dates.isEmpty()) return 0;
-
-        java.util.Calendar cal = java.util.Calendar.getInstance();
-        java.util.TreeSet<Long> uniqueDayTimestamps = new java.util.TreeSet<>(java.util.Collections.reverseOrder());
-
-        for (Long date : dates) {
-            cal.setTimeInMillis(date);
-            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
-            cal.set(java.util.Calendar.MINUTE, 0);
-            cal.set(java.util.Calendar.SECOND, 0);
-            cal.set(java.util.Calendar.MILLISECOND, 0);
-            uniqueDayTimestamps.add(cal.getTimeInMillis());
-        }
-
-        int streak = 0;
-        long today = System.currentTimeMillis();
-        cal.setTimeInMillis(today);
-        cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
-        cal.set(java.util.Calendar.MINUTE, 0);
-        cal.set(java.util.Calendar.SECOND, 0);
-        cal.set(java.util.Calendar.MILLISECOND, 0);
-        long checkDay = cal.getTimeInMillis();
-
-        if (uniqueDayTimestamps.contains(checkDay)) {
-            streak++;
-        } else {
-            // Check yesterday
-            cal.add(java.util.Calendar.DAY_OF_YEAR, -1);
-            checkDay = cal.getTimeInMillis();
-            if (uniqueDayTimestamps.contains(checkDay)) {
-                streak++;
-            } else {
-                return 0;
-            }
-        }
-
-        // Continue counting backwards
-        while (true) {
-            cal.setTimeInMillis(checkDay);
-            cal.add(java.util.Calendar.DAY_OF_YEAR, -1);
-            checkDay = cal.getTimeInMillis();
-            if (uniqueDayTimestamps.contains(checkDay)) {
-                streak++;
-            } else {
-                break;
-            }
-        }
-
-        return streak;
+        return StreakCalculator.calculateStreak(dates);
     }
 }

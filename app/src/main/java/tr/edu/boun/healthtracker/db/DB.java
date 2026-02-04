@@ -285,4 +285,68 @@ public class DB
         c.close();
         return list;
     }
+
+    public int getStreakDays(int userId) {
+        List<Long> dates = new ArrayList<>();
+        Cursor c = database.query(TABLE_LOG, new String[]{LOG_DATE},
+                LOG_USER_ID + " = ?", new String[]{String.valueOf(userId)},
+                null, null, LOG_DATE + " DESC");
+
+        if (c.moveToFirst()) {
+            do {
+                dates.add(c.getLong(0));
+            } while (c.moveToNext());
+        }
+        c.close();
+
+        if (dates.isEmpty()) return 0;
+
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        java.util.TreeSet<Long> uniqueDayTimestamps = new java.util.TreeSet<>(java.util.Collections.reverseOrder());
+
+        for (Long date : dates) {
+            cal.setTimeInMillis(date);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            cal.set(java.util.Calendar.MINUTE, 0);
+            cal.set(java.util.Calendar.SECOND, 0);
+            cal.set(java.util.Calendar.MILLISECOND, 0);
+            uniqueDayTimestamps.add(cal.getTimeInMillis());
+        }
+
+        int streak = 0;
+        long today = System.currentTimeMillis();
+        cal.setTimeInMillis(today);
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        cal.set(java.util.Calendar.MINUTE, 0);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        long checkDay = cal.getTimeInMillis();
+
+        if (uniqueDayTimestamps.contains(checkDay)) {
+            streak++;
+        } else {
+            // Check yesterday
+            cal.add(java.util.Calendar.DAY_OF_YEAR, -1);
+            checkDay = cal.getTimeInMillis();
+            if (uniqueDayTimestamps.contains(checkDay)) {
+                streak++;
+            } else {
+                return 0;
+            }
+        }
+
+        // Continue counting backwards
+        while (true) {
+            cal.setTimeInMillis(checkDay);
+            cal.add(java.util.Calendar.DAY_OF_YEAR, -1);
+            checkDay = cal.getTimeInMillis();
+            if (uniqueDayTimestamps.contains(checkDay)) {
+                streak++;
+            } else {
+                break;
+            }
+        }
+
+        return streak;
+    }
 }

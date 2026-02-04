@@ -127,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         tvStreak.setText("Current Streak: " + streak + " days");
 
         for(LogObject log : logs) {
-            dailyItems.add(new CustomItem(log.getHeader(), log.getDetail(), log.getValue()));
+            dailyItems.add(new CustomItem(log.getId(), log.getHeader(), log.getDetail(), log.getValue()));
         }
 
         populateList(dailyItems);
@@ -146,12 +146,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     String detail = data.getStringExtra("itemDetail");
                     String value = data.getStringExtra("itemValue");
 
-                    CustomItem ci = new CustomItem(header, detail, value);
-
-                    dailyItems.add(ci);
-
-                    populateList(dailyItems);
-
                     // Save to DB
                     LogObject log = new LogObject();
                     log.setUserId(currentUser.getId());
@@ -168,8 +162,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
                     DB db = new DB(MainActivity.this);
                     db.openDB();
-                    db.insertLog(log);
+                    long newId = db.insertLog(log);
                     db.closeDB();
+
+                    CustomItem ci = new CustomItem((int)newId, header, detail, value);
+
+                    dailyItems.add(ci);
+
+                    populateList(dailyItems);
                 }
                 break;
         }
@@ -250,10 +250,35 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         @Override
         public void onBindViewHolder(ItemHolder holder, final int position)
         {
-            CustomItem item = values.get(position);
+            final CustomItem item = values.get(position);
             holder.item_header.setText(item.getHeader());
             holder.item_subtext.setText(item.getSubtext());
             holder.item_value.setText(item.getValue());
+
+            holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Delete Entry")
+                            .setMessage("Are you sure you want to delete this entry?")
+                            .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    DB db = new DB(MainActivity.this);
+                                    db.openDB();
+                                    db.deleteLog(item.getId());
+                                    db.closeDB();
+
+                                    values.remove(position);
+                                    notifyItemRemoved(position);
+                                    notifyItemRangeChanged(position, values.size());
+                                    calculateRemainingCalories();
+                                }
+                            })
+                            .setNegativeButton(android.R.string.no, null)
+                            .show();
+                    return true;
+                }
+            });
         }
 
         @Override
@@ -266,16 +291,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     public class CustomItem
     {
+        int id;
         String header;
         String subtext;
         String value;
 
-        public CustomItem(String header, String subtext, String value)
+        public CustomItem(int id, String header, String subtext, String value)
         {
+            this.id = id;
             this.header = header;
             this.subtext = subtext;
             this.value = value;
         }
+
+        public int getId() { return id; }
 
         public String getHeader()
         {

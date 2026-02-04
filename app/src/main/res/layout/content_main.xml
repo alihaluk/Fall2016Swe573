@@ -22,6 +22,15 @@
         android:textAppearance="@android:style/TextAppearance.DeviceDefault.Medium"
         android:text="Today"/>
 
+    <TextView
+        android:id="@+id/txt_streak"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:textAppearance="@android:style/TextAppearance.DeviceDefault.Small"
+        android:text="Current Streak: 0 days"
+        android:layout_marginBottom="10dp"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="96dp"

@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     TextView tvTotalFood;
     TextView tvTotalExercise;
     TextView tvRemainingCalories;
+    TextView tvStreak;
 
     UserObject currentUser;
 
@@ -95,6 +96,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         tvTotalFood = (TextView) findViewById(R.id.txt_main_total_food);
         tvTotalExercise = (TextView) findViewById(R.id.txt_main_total_exercise);
         tvRemainingCalories = (TextView) findViewById(R.id.txt_main_total_calorie);
+        tvStreak = (TextView) findViewById(R.id.txt_streak);
 
         mRecyclerView = (RecyclerView) findViewById(R.id.main_list);
         mRecyclerView.setHasFixedSize(true);
@@ -119,7 +121,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         db.openDB();
         List<LogObject> logs = db.getLogsForDate(startOfDay, endOfDay, currentUser.getId());
+        int streak = db.getStreakDays(currentUser.getId());
         db.closeDB();
+
+        tvStreak.setText("Current Streak: " + streak + " days");
 
         for(LogObject log : logs) {
             dailyItems.add(new CustomItem(log.getHeader(), log.getDetail(), log.getValue()));

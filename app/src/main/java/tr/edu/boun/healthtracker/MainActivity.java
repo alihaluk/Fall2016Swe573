@@ -18,13 +18,17 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
 import tr.edu.boun.healthtracker.db.DB;
+import tr.edu.boun.healthtracker.model.inner.LogObject;
 import tr.edu.boun.healthtracker.model.inner.UserObject;
+import tr.edu.boun.healthtracker.utils.CalorieCalculator;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener
 {
@@ -100,6 +104,27 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         dailyItems = new ArrayList<>();
 
+        // Load logs
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        long startOfDay = cal.getTimeInMillis();
+
+        cal.set(Calendar.HOUR_OF_DAY, 23);
+        cal.set(Calendar.MINUTE, 59);
+        cal.set(Calendar.SECOND, 59);
+        long endOfDay = cal.getTimeInMillis();
+
+        db.openDB();
+        List<LogObject> logs = db.getLogsForDate(startOfDay, endOfDay, currentUser.getId());
+        db.closeDB();
+
+        for(LogObject log : logs) {
+            dailyItems.add(new CustomItem(log.getHeader(), log.getDetail(), log.getValue()));
+        }
+
         populateList(dailyItems);
     }
 
@@ -121,6 +146,25 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     dailyItems.add(ci);
 
                     populateList(dailyItems);
+
+                    // Save to DB
+                    LogObject log = new LogObject();
+                    log.setUserId(currentUser.getId());
+                    if (detail.equals("Food")) {
+                        log.setType("Food");
+                    } else {
+                        log.setType("Exercise");
+                    }
+
+                    log.setHeader(header);
+                    log.setDetail(detail);
+                    log.setValue(value);
+                    log.setDate(System.currentTimeMillis());
+
+                    DB db = new DB(MainActivity.this);
+                    db.openDB();
+                    db.insertLog(log);
+                    db.closeDB();
                 }
                 break;
         }
@@ -145,17 +189,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         tvTotalFood.setText(String.format(Locale.US, "%d", totalFood.intValue()));
         tvTotalExercise.setText(String.format(Locale.US, "%d", totalExercise.intValue()));
-        Double remaining = currentUser.getCalGoal() - totalFood + totalExercise;
+        Double remaining = CalorieCalculator.calculateRemaining(currentUser.getCalGoal(), totalFood, totalExercise);
         tvRemainingCalories.setText(String.format(Locale.US, "%d", remaining.intValue()));
-        if (remaining > 0.0)
+        if (remaining >= 0.0)
         {
             tvRemainingCalories.setTextColor(getResources().getColor(R.color.colorPrimaryDark));
         }
-        else if (remaining < 0.0)
+        else
         {
             String str = "-";
             str += tvRemainingCalories.getText().toString();
             tvRemainingCalories.setTextColor(getResources().getColor(R.color.colorMinus));
+            Toast.makeText(this, "Warning: Calorie goal exceeded!", Toast.LENGTH_SHORT).show();
         }
 
     }

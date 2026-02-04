@@ -19,6 +19,7 @@ public class DBOpenHelper extends SQLiteOpenHelper
     {
         db.execSQL(DB.TABLE_CREATE_EXERCISE_CAL_BURNED);
         db.execSQL(DB.TABLE_CREATE_USER);
+        db.execSQL(DB.TABLE_CREATE_LOG);
 
         db.execSQL("INSERT INTO tblExerciseCalBurned (Name, CalValuePerKG) VALUES ('Cycling, mountain bike, bmx',8.5)");
         db.execSQL("INSERT INTO tblExerciseCalBurned (Name, CalValuePerKG) VALUES ('Cycling, <10 mph, leisure bicycling',4)");
@@ -274,6 +275,8 @@ public class DBOpenHelper extends SQLiteOpenHelper
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
     {
-
+        if (oldVersion < 2) {
+            db.execSQL(DB.TABLE_CREATE_LOG);
+        }
     }
 }

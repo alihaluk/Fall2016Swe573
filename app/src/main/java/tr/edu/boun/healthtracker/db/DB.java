@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import tr.edu.boun.healthtracker.model.inner.ExerciseObject;
+import tr.edu.boun.healthtracker.model.inner.LogObject;
 import tr.edu.boun.healthtracker.model.inner.UserObject;
 
 /**
@@ -20,7 +21,7 @@ import tr.edu.boun.healthtracker.model.inner.UserObject;
 
 public class DB
 {
-    public static final int DATABASE_VERSION = 1;
+    public static final int DATABASE_VERSION = 2;
     public static String DATABASE_NAME = "HTdb";
     public static Context ctx;
     public SQLiteDatabase database;
@@ -92,6 +93,26 @@ public class DB
             + USER_BMI + " DOUBLE,"
             + USER_CAL_GOAL + " INTEGER,"
             + USER_ACTIVE + " INTEGER"
+            + ");";
+
+    public static final String TABLE_LOG = "tblLog";
+    public static final String LOG_ID = "ID";
+    public static final String LOG_USER_ID = "UserID";
+    public static final String LOG_TYPE = "Type";
+    public static final String LOG_HEADER = "Header";
+    public static final String LOG_DETAIL = "Detail";
+    public static final String LOG_VALUE = "Value";
+    public static final String LOG_DATE = "Date";
+
+    public static final String TABLE_CREATE_LOG = "CREATE TABLE " + TABLE_LOG
+            + " ("
+            + LOG_ID + " INTEGER PRIMARY KEY,"
+            + LOG_USER_ID + " INTEGER,"
+            + LOG_TYPE + " TEXT,"
+            + LOG_HEADER + " TEXT,"
+            + LOG_DETAIL + " TEXT,"
+            + LOG_VALUE + " TEXT,"
+            + LOG_DATE + " LONG"
             + ");";
 
     public boolean doesExistsUser(String user_email) {
@@ -227,5 +248,41 @@ public class DB
         }
         c.close();
         return retList;
+    }
+
+    public void insertLog(LogObject log) {
+        ContentValues values = new ContentValues();
+        values.put(LOG_USER_ID, log.getUserId());
+        values.put(LOG_TYPE, log.getType());
+        values.put(LOG_HEADER, log.getHeader());
+        values.put(LOG_DETAIL, log.getDetail());
+        values.put(LOG_VALUE, log.getValue());
+        values.put(LOG_DATE, log.getDate());
+
+        database.insert(TABLE_LOG, null, values);
+    }
+
+    public List<LogObject> getLogsForDate(long startOfDay, long endOfDay, int userId) {
+        List<LogObject> list = new ArrayList<>();
+        Cursor c = database.query(TABLE_LOG, null,
+                LOG_USER_ID + " = ? AND " + LOG_DATE + " >= ? AND " + LOG_DATE + " <= ?",
+                new String[]{String.valueOf(userId), String.valueOf(startOfDay), String.valueOf(endOfDay)},
+                null, null, LOG_DATE + " ASC");
+
+        if (c.moveToFirst()) {
+            do {
+                LogObject log = new LogObject();
+                log.setId(c.getInt(c.getColumnIndex(LOG_ID)));
+                log.setUserId(c.getInt(c.getColumnIndex(LOG_USER_ID)));
+                log.setType(c.getString(c.getColumnIndex(LOG_TYPE)));
+                log.setHeader(c.getString(c.getColumnIndex(LOG_HEADER)));
+                log.setDetail(c.getString(c.getColumnIndex(LOG_DETAIL)));
+                log.setValue(c.getString(c.getColumnIndex(LOG_VALUE)));
+                log.setDate(c.getLong(c.getColumnIndex(LOG_DATE)));
+                list.add(log);
+            } while (c.moveToNext());
+        }
+        c.close();
+        return list;
     }
 }
